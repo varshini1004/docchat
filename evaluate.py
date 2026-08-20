@@ -1,18 +1,3 @@
-"""
-DocChat - Day 3: Evaluation
-------------------------------
-Runs a batch of test questions through the pipeline and logs results to a
-CSV, so you can measure quality instead of just eyeballing single answers.
-
-This is what turns "I built a chatbot" into "I built a chatbot and measured
-it achieves X% relevance on Y test questions" -- a MUCH stronger resume line.
-
-Usage:
-    1. Edit the TEST_QUESTIONS list below with 5-10 questions about YOUR
-       document (mix of easy/direct and harder/inferential questions).
-    2. Run: python evaluate.py
-    3. Open eval_results.csv to review, or read the printed summary.
-"""
 
 import csv
 import time
