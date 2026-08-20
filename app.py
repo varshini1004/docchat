@@ -1,3 +1,21 @@
+"""
+DocChat - Day 4: FastAPI Backend
+-----------------------------------
+Wraps the ingestion + retrieval + LLM pipeline in a web API so a frontend
+(Day 5) can talk to it over HTTP.
+
+Endpoints:
+    GET  /health         - simple check that the server is alive
+    POST /chat            - ask a question, get an answer + sources
+    POST /upload           - upload a new PDF and rebuild the index
+
+Run:
+    pip install fastapi uvicorn python-multipart
+    uvicorn app:app --reload
+
+Then open http://127.0.0.1:8000/docs for an interactive test UI (FastAPI
+gives you this automatically -- no frontend needed to try it out).
+"""
 
 import os
 import shutil
@@ -6,9 +24,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from query import load_vectorstore, build_context, PROMPT_TEMPLATE, LLM_MODEL, TOP_K
+from query import build_context, PROMPT_TEMPLATE, LLM_MODEL, TOP_K, EMBEDDING_MODEL
 from ingest import load_documents, split_documents, build_and_save_index, DATA_DIR, INDEX_DIR
 from langchain_groq import ChatGroq
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 
 load_dotenv()
 
@@ -23,6 +43,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Load the embedding model and LLM client ONCE at startup instead of on
+# every request. Re-loading these per-request wastes memory and time --
+# on memory-constrained hosts (like Render's free tier) it can crash the
+# server outright. Reusing one instance across requests is both faster
+# and much lighter on RAM.
+_embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+_llm = ChatGroq(model=LLM_MODEL, temperature=0)
+_vectorstore = None
+
+if os.path.exists(INDEX_DIR):
+    _vectorstore = FAISS.load_local(
+        INDEX_DIR, _embeddings, allow_dangerous_deserialization=True
+    )
 
 
 class ChatRequest(BaseModel):
@@ -41,7 +75,9 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
-    if not os.path.exists(INDEX_DIR):
+    global _vectorstore
+
+    if _vectorstore is None:
         raise HTTPException(
             status_code=400,
             detail="No documents indexed yet. Upload a PDF via /upload first.",
@@ -50,8 +86,7 @@ def chat(request: ChatRequest):
     if not os.getenv("GROQ_API_KEY"):
         raise HTTPException(status_code=500, detail="GROQ_API_KEY not configured on server.")
 
-    vectorstore = load_vectorstore()
-    retrieved_docs = vectorstore.similarity_search(request.question, k=TOP_K)
+    retrieved_docs = _vectorstore.similarity_search(request.question, k=TOP_K)
 
     if not retrieved_docs:
         return ChatResponse(answer="No relevant content found in your documents.", sources=[])
@@ -59,8 +94,7 @@ def chat(request: ChatRequest):
     context, sources_str = build_context(retrieved_docs)
     prompt = PROMPT_TEMPLATE.format(context=context, question=request.question)
 
-    llm = ChatGroq(model=LLM_MODEL, temperature=0)
-    response = llm.invoke(prompt)
+    response = _llm.invoke(prompt)
 
     sources_list = [line.strip() for line in sources_str.split("\n") if line.strip()]
 
@@ -69,6 +103,8 @@ def chat(request: ChatRequest):
 
 @app.post("/upload")
 def upload(file: UploadFile = File(...)):
+    global _vectorstore
+
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
@@ -78,11 +114,14 @@ def upload(file: UploadFile = File(...)):
     with open(save_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    # Rebuild the index to include the new file. For a bigger project you'd
-    # do this incrementally instead of from scratch -- worth mentioning as
-    # a "future improvement" in your README.
+    # Rebuild the index to include the new file, then refresh the in-memory
+    # vectorstore so /chat immediately reflects the new document without
+    # needing a server restart.
     documents = load_documents(DATA_DIR)
     chunks = split_documents(documents)
     build_and_save_index(chunks, INDEX_DIR)
+    _vectorstore = FAISS.load_local(
+        INDEX_DIR, _embeddings, allow_dangerous_deserialization=True
+    )
 
     return {"message": f"Uploaded and indexed '{file.filename}' successfully."}
