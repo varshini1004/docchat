@@ -1,5 +1,5 @@
 venv/
-
+data/*.pdf
 faiss_index/
 __pycache__/
 .env
