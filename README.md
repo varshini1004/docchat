@@ -1,48 +1,59 @@
-# DocChat — Day 1: Ingestion Pipeline
+# DocChat — RAG Document Q&A
 
-RAG-based document Q&A chatbot. This is the first slice: turning PDFs into a
-searchable vector index.
+A retrieval-augmented generation (RAG) chatbot that lets you ask questions
+about your own PDF documents. Currently implements the ingestion and
+retrieval pipeline: turning PDFs into a searchable vector index.
 
 ## Setup
 
-```bash
+```
+git clone https://github.com/varshini1004/docchat.git
+cd docchat
 python -m venv venv
 source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Run
+## Usage
 
-1. Put 1–3 PDF files into the `data/` folder (textbooks, notes, papers — pick
-   a theme you can talk about confidently in an interview).
+1. Put 1–3 PDF files into the `data/` folder (textbooks, notes, papers, etc.).
 2. Build the index:
-   ```bash
-   python ingest.py
-   ```
-3. Test retrieval (no LLM yet, just confirms search works):
-   ```bash
-   python test_retrieval.py "your question about the document"
-   ```
 
-## What's happening under the hood
+```
+python ingest.py
+```
+
+3. Test retrieval (no LLM yet, just confirms search works):
+
+```
+python test_retrieval.py "your question about the document"
+```
+
+4. Start the server:
+
+```
+uvicorn app:app --reload
+```
+
+## How it works
 
 - **PyPDFLoader** reads each PDF page as a separate document, tagged with its
-  source filename and page number (this is what powers citations later).
+  source filename and page number (this powers citations later).
 - **RecursiveCharacterTextSplitter** breaks pages into ~800-character chunks
   with 150-character overlap, so context isn't lost at chunk boundaries.
 - **HuggingFaceEmbeddings** (`all-MiniLM-L6-v2`) turns each chunk into a
-  384-dimension vector — runs locally, free, no API key.
-- **FAISS** stores those vectors and lets you do fast similarity search.
+  384-dimension vector — runs locally, free, no API key required.
+- **FAISS** stores those vectors and enables fast similarity search.
 
-## Next steps (Day 2+)
+## Roadmap
 
-- `query.py`: retrieve top-k chunks for a question, pass them to an LLM
+- `query.py`: retrieve top-k chunks for a question and pass them to an LLM
   (Groq/OpenAI) to generate a grounded answer.
 - Add source citations to the LLM's answer.
-- Wrap in FastAPI, then build the frontend.
+- Wrap in FastAPI, then build out the frontend.
 
-## Notes for your README/resume later
+## Notes
 
-Once you experiment with `CHUNK_SIZE`/`CHUNK_OVERLAP` in `ingest.py`, note
-what values worked best and why — that's a concrete detail worth mentioning
-in interviews ("I tuned chunk size from 500 to 800 chars because...").
+Chunk size and overlap (`CHUNK_SIZE` / `CHUNK_OVERLAP` in `ingest.py`) are
+tunable — worth experimenting with and documenting what works best for your
+data.
