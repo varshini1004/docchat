@@ -1,17 +1,3 @@
-"""
-DocChat - Day 2: Retrieval + LLM Answer Generation
-----------------------------------------------------
-Retrieves relevant chunks from the FAISS index (built in Day 1) and passes
-them to a free LLM (via Groq) to generate a real, grounded answer -- with
-source citations.
-
-Setup:
-    1. Get a free API key from https://console.groq.com
-    2. Create a `.env` file in this folder with:
-       GROQ_API_KEY=your_key_here
-    3. Run: pip install langchain-groq
-    4. Run: python query.py "your question here"
-"""
 
 import os
 import sys
