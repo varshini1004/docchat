@@ -1,20 +1,10 @@
 """
-DocChat - Day 4: FastAPI Backend
------------------------------------
 Wraps the ingestion + retrieval + LLM pipeline in a web API so a frontend
-(Day 5) can talk to it over HTTP.
-
-Endpoints:
-    GET  /health         - simple check that the server is alive
-    POST /chat            - ask a question, get an answer + sources
-    POST /upload           - upload a new PDF and rebuild the index
 
 Run:
     pip install fastapi uvicorn python-multipart
     uvicorn app:app --reload
 
-Then open http://127.0.0.1:8000/docs for an interactive test UI (FastAPI
-gives you this automatically -- no frontend needed to try it out).
 """
 
 import os
