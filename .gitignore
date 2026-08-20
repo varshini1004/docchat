@@ -1,0 +1,6 @@
+venv/
+data/*.pdf
+faiss_index/
+__pycache__/
+.env
+eval_results.csv
