@@ -1,12 +1,3 @@
-"""
-DocChat - Day 1 sanity check
------------------------------
-Loads the FAISS index you just built and runs a similarity search,
-so you can confirm retrieval works BEFORE wiring up an LLM on Day 2.
-
-Usage:
-    python test_retrieval.py "your question here"
-"""
 
 import sys
 from langchain_community.embeddings import HuggingFaceEmbeddings
