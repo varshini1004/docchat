@@ -1,16 +1,3 @@
-"""
-DocChat - Day 1: Ingestion Pipeline
-------------------------------------
-Loads all PDFs from ./data, splits them into chunks, embeds them with a
-free local embedding model, and saves a FAISS vector index to disk.
-
-Usage:
-    1. Drop your PDF files into the `data/` folder.
-    2. Run: python ingest.py
-    3. This creates a `faiss_index/` folder — that's your vector database.
-
-No API key needed for this step (we use a local HuggingFace embedding model).
-"""
 
 import os
 from langchain_community.document_loaders import PyPDFLoader
